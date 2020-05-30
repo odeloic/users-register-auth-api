@@ -1,21 +1,26 @@
 /* eslint-disable no-useless-catch */
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 import User from './user.model'
+import config from './config'
 
-const userExists = (user) => {
-  const { username, email } = user
-  console.log({ username, email })
-  User.findOne({ username, email })
-    .lean()
-    .exec()
-    .then((user) => {
-      if (user) {
-        return 1
-      }
-      return 0
-    })
-    .catch((e) => { throw (e) })
+
+const userExists = async (username) => {
+  try {
+    const userFound = await User.findOne({ username }).exec()
+    return userFound
+  } catch (err) {
+    throw err
+  }
 }
 
-module.exports = {
-  userExists
+const encryptUserPassword = (plainPassword) => bcrypt.hashSync(plainPassword, config.saltRounds)
+
+const checkPassword = (plainPassword, hash) => bcrypt.compareSync(plainPassword, hash)
+
+const generateToken = (userId) => jwt.sign({ id: userId }, config.secret, { expiresIn: 60 * 60 })
+const verifyToken = (token) => jwt.verify(token, config.secret)
+
+export {
+  userExists, encryptUserPassword, checkPassword, generateToken, verifyToken
 }
